@@ -7,7 +7,10 @@ from .helpers import *
 from rest_framework.response import Response
 from rest_framework.decorators import api_view
 from .serializers import BookSerializer
+from django.views.decorators.csrf import csrf_exempt
+import json
 
+@csrf_exempt
 @api_view(["GET"])
 def search_api(request):
     """
@@ -42,14 +45,17 @@ def search_api(request):
         serializer = BookSerializer(results, many=True)
         return Response(serializer.data)
 
+@csrf_exempt
 @api_view(["POST"])
 def send_to_kindle_api(request):
     """
     Send the selected book to the Kindle email address.
     """
     if request.method == "POST":
-        item_to_download = ast.literal_eval(request.POST.get("book_to_download")) # convert string to dict
-        kindle_email = request.POST.get("kindle_email")
+        data = json.loads(request.body)
+        print(data)
+        item_to_download = data.get("book_to_download")
+        kindle_email = data.get("kindle_email")
         print(f"Kindle email: {kindle_email}")
 
         # Server-side email validation
