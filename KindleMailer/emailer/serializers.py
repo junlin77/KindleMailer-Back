@@ -9,4 +9,10 @@ class BookSerializer(serializers.Serializer):
     Language = serializers.CharField()
     Size = serializers.CharField()
     Extension = serializers.CharField()
+    Mirror_1 = serializers.CharField()
+    Mirror_2 = serializers.CharField()
+    Mirror_3 = serializers.CharField()
+    Mirror_4 = serializers.CharField(required=False)
+    Mirror_5 = serializers.CharField(required=False)
+
 
