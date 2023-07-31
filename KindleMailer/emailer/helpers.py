@@ -59,7 +59,8 @@ def send_email_with_attachment(email_address, file_path):
         email.send()
         print("Email sent successfully.")
         return True
-    except Exception:
+    except Exception as e:
+        print(f"Failed to send the email: {str(e)}")
         return False
 
 def delete_file(file_path):

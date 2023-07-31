@@ -51,7 +51,6 @@ def send_to_kindle_api(request):
     """
     if request.method == "POST":
         data = json.loads(request.body)
-        print(data)
         item_to_download = data.get("book_to_download")
         kindle_email = data.get("kindle_email")
         print(f"Kindle email: {kindle_email}")
@@ -92,7 +91,6 @@ def send_to_kindle_api(request):
         if send_email_with_attachment(kindle_email, file_path):
             success = True
         else:
-            print("Failed to send the email.")
             success = False
 
         delete_file(file_path)
