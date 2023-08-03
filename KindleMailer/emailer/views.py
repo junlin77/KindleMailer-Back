@@ -19,26 +19,23 @@ def search_api(request):
         author = request.GET.get("author")
         extension = request.GET.get("extension")
 
-        if title is None or (title == None and author == None and extension == None): # initial page load
+        try: 
+            if title is None or (title == None and author == None and extension == None): # initial page load
+                results = []
+            elif len(title) >= 3 and author == None and extension == None: # title search
+                results = s.search_title(title)
+            elif len(title) > 3 and (author != None or extension != None): # filtered title search 
+                title_filters = {"Author": author, "Extension": extension}
+                results = s.search_title_filtered(title, title_filters, exact_match=False)
+            elif len(title) < 3 and author != None and extension == None: # author search
+                results = s.search_author(author)
+            elif len(title) < 3 and author != None and extension != None: # filtered author search
+                author_filters = {"Extension": extension}
+                results = s.search_author_filtered(author, author_filters, exact_match=False)
+        except Exception as e:
+            if str(e) != "Query is too short":
+                print("Caught a different Exception:", e)
             results = []
-        elif len(title) >= 3 and author == None and extension == None: # title search
-            results = s.search_title(title)
-        elif len(title) > 3 and (author != None or extension != None): # filtered title search 
-            title_filters = {"Author": author, "Extension": extension}
-            results = s.search_title_filtered(title, title_filters, exact_match=False)
-        elif len(title) < 3 and author != None and extension == None: # author search
-            results = s.search_author(author)
-        elif len(title) < 3 and author != None and extension != None: # filtered author search
-            author_filters = {"Extension": extension}
-            results = s.search_author_filtered(author, author_filters, exact_match=False)
-
-        # TODO: handle email address elsewhere
-        # stored_kindle_email = request.session.get("kindle_email")
-
-        # context = {
-        #     "books": results,
-        #     "stored_kindle_email": stored_kindle_email
-        # }
 
         serializer = BookSerializer(results, many=True)
         return Response(serializer.data)
