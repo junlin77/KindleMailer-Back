@@ -1,4 +1,4 @@
-from django.http import HttpResponse, JsonResponse
+from django.http import JsonResponse, HttpResponseServerError
 from django.conf import settings
 from libgen_api import LibgenSearch
 import os
@@ -20,9 +20,7 @@ def search_api(request):
         extension = request.GET.get("extension")
 
         try: 
-            if title is None or (title == None and author == None and extension == None): # initial page load
-                results = []
-            elif len(title) >= 3 and author == None and extension == None: # title search
+            if len(title) >= 3 and author == None and extension == None: # title search
                 results = s.search_title(title)
             elif len(title) > 3 and (author != None or extension != None): # filtered title search 
                 title_filters = {"Author": author, "Extension": extension}
@@ -55,19 +53,18 @@ def send_to_kindle_api(request):
         # Server-side email validation
         if len(kindle_email) == 0:
             print("No email address provided.")
-            return HttpResponse("No email address provided.")
+            return JsonResponse({"error": "No email address provided."}, status=400)
         elif not validate_email(kindle_email):
             print("Invalid email address.")
-            return HttpResponse("Invalid email address.")
+            return JsonResponse({"error": "Invalid email address."}, status=400)
 
         # resolve_download_links()
         try:
             s = LibgenSearch() 
             url = s.resolve_download_links(item_to_download)
         except Exception as e:
-            # Handle the exception or log the error message
             print(f"Failed to resolve download links: {str(e)}")
-            return HttpResponse("Failed to resolve download links.")
+            return HttpResponseServerError("Failed to resolve download links.")
 
         # Iterate through the download links
         response = iterate_download_links(url)
@@ -82,7 +79,7 @@ def send_to_kindle_api(request):
         if save_file_in_media_root(response, file_path):
             print("File saved successfully in MEDIA_ROOT.")
         else:
-            return HttpResponse("Failed to save the file.")
+            return HttpResponseServerError("Failed to save the file.")
 
         # Send the file as an email attachment
         if send_email_with_attachment(kindle_email, file_path):
