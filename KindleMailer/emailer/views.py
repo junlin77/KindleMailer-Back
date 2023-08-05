@@ -97,25 +97,24 @@ def send_to_kindle_api(request):
 def login_api(request):
     access_token = request.data.get('access_token')
 
-    # Make a GET request to the Google API's tokeninfo endpoint
-    google_api_url = f"https://www.googleapis.com/oauth2/v1/tokeninfo?access_token={access_token}"
-    response = requests.get(google_api_url)
+    # Retrieve user profile picture URL using Google OAuth2 userinfo endpoint
+    userinfo_api_url = f"https://www.googleapis.com/oauth2/v1/userinfo?access_token={access_token}"
+    userinfo_response = requests.get(userinfo_api_url)
+    
+    if userinfo_response.status_code == 200:
+        userinfo_data = userinfo_response.json()
+        print(f"Userinfo data: {userinfo_data}")
 
-    if response.status_code == 200:
-        google_user_info = response.json()
-        print(f"Google user info: {google_user_info}")
-
-        # Extract Google User ID from the response
-        google_user_id = google_user_info.get('user_id')
-        print(f"Google user ID: {google_user_id}")
+        profile_picture = userinfo_data.get('picture')
+        google_user_id = userinfo_data.get('id')
 
         user_exists = UserProfile.objects.filter(google_user_id=google_user_id).exists()
 
         if not user_exists:
             # Create a new user profile
             new_user = UserProfile.objects.create(google_user_id=google_user_id)
-            return Response({'message': 'New user profile created'}, status=status.HTTP_201_CREATED)
+            return Response({'message': 'New user profile created', 'profile_picture': profile_picture}, status=status.HTTP_201_CREATED)
         else:
-            return Response({'message': 'User already exists'}, status=status.HTTP_200_OK)
+            return Response({'message': 'User already exists', 'profile_picture': profile_picture}, status=status.HTTP_200_OK)
     else:
-        return Response({'error': 'Failed to fetch user info from Google'}, status=response.status_code)
+        return Response({'error': 'Failed to fetch user info from Google'}, status=userinfo_response.status_code)
