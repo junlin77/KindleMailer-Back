@@ -22,17 +22,20 @@ def search_api(request):
         title = request.GET.get("title")
         author = request.GET.get("author")
         extension = request.GET.get("extension")
+        publisher = request.GET.get("publisher")
+        year = request.GET.get("year")
+        language = request.GET.get("language")
 
         try: 
-            if len(title) >= 3 and author == None and extension == None: # title search
+            if len(title) >= 3 and author == None and extension == None and publisher == None and year == None and language == None: # title search
                 results = s.search_title(title)
-            elif len(title) > 3 and (author != None or extension != None): # filtered title search 
-                title_filters = {"Author": author, "Extension": extension}
+            elif len(title) > 3 and (author != None or extension != None or publisher != None or year != None or language != None): # filtered title search 
+                title_filters = {"Author": author, "Extension": extension, "Publisher": publisher, "Year": year, "Language": language}
                 results = s.search_title_filtered(title, title_filters, exact_match=False)
-            elif len(title) < 3 and author != None and extension == None: # author search
+            elif len(title) < 3 and author != None and extension == None and publisher == None and year == None and language == None: # author search
                 results = s.search_author(author)
-            elif len(title) < 3 and author != None and extension != None: # filtered author search
-                author_filters = {"Extension": extension}
+            elif len(title) < 3 and author != None and (extension != None or publisher != None or year != None or language != None): # filtered author search
+                author_filters = {"Extension": extension, "Publisher": publisher, "Year": year, "Language": language}
                 results = s.search_author_filtered(author, author_filters, exact_match=False)
         except Exception as e:
             if str(e) != "Query is too short":
