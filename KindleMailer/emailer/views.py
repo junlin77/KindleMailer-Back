@@ -5,6 +5,7 @@ import os
 from .helpers import *
 from rest_framework.response import Response
 from rest_framework.decorators import api_view
+from rest_framework.views import APIView
 from .serializers import BookSerializer
 import json
 from rest_framework import status
@@ -50,7 +51,7 @@ def send_to_kindle_api(request):
     if request.method == "POST":
         data = json.loads(request.body)
         item_to_download = data.get("book_to_download")
-        kindle_email = data.get("kindle_email")
+        kindle_email = data.get("kindle_email").strip()
         print(f"Kindle email: {kindle_email}")
 
         # Server-side email validation
@@ -95,6 +96,9 @@ def send_to_kindle_api(request):
 
 @api_view(["POST"])
 def login_api(request):
+    """
+    Login using Google OAuth2.
+    """
     access_token = request.data.get('access_token')
 
     # Retrieve user profile picture URL using Google OAuth2 userinfo endpoint
@@ -113,8 +117,50 @@ def login_api(request):
         if not user_exists:
             # Create a new user profile
             new_user = UserProfile.objects.create(google_user_id=google_user_id)
-            return Response({'message': 'New user profile created', 'profile_picture': profile_picture}, status=status.HTTP_201_CREATED)
+            message = 'New user profile created'
+            kindle_email = ''
+            status_code = status.HTTP_201_CREATED
         else:
-            return Response({'message': 'User already exists', 'profile_picture': profile_picture}, status=status.HTTP_200_OK)
+            message = 'User already exists'
+            kindle_email = UserProfile.objects.get(google_user_id=google_user_id).kindle_email
+            status_code = status.HTTP_200_OK
+        return Response({'message': message, 'profile_picture': profile_picture, 'user_id': google_user_id, 'kindle_email': kindle_email}, status=status_code)
     else:
         return Response({'error': 'Failed to fetch user info from Google'}, status=userinfo_response.status_code)
+    
+class KindleEmailAPI(APIView):
+    def get(self, request):
+        """
+        Get the Kindle email for the authenticated user.
+        """
+        user_id = request.GET.get("user_id")
+
+        try:
+            user_profile = UserProfile.objects.get(google_user_id=user_id)
+            kindle_email = user_profile.kindle_email
+            return Response({"kindle_email": kindle_email}, status=status.HTTP_200_OK)
+        except UserProfile.DoesNotExist:
+            return Response({"error": "User profile not found"}, status=status.HTTP_404_NOT_FOUND)
+                            
+    def post(self, request):
+        """
+        Set the Kindle email for the authenticated user.
+        """
+        user_id = request.data.get("user_id")
+
+        if request.method == "POST":
+            kindle_email = request.data.get("kindle_email").strip()
+
+            if not kindle_email:
+                return Response({"error": "Kindle email is required"}, status=status.HTTP_400_BAD_REQUEST)
+
+            # Update the user's Kindle email in the UserProfile model
+            try:
+                user_profile = UserProfile.objects.get(google_user_id=user_id)
+                user_profile.kindle_email = kindle_email
+                user_profile.save()
+                return Response({"message": "Kindle email set successfully"}, status=status.HTTP_200_OK)
+            except UserProfile.DoesNotExist:
+                return Response({"error": "User profile not found"}, status=status.HTTP_404_NOT_FOUND)
+        
+        return Response({"error": "Invalid request method"}, status=status.HTTP_405_METHOD_NOT_ALLOWED)
