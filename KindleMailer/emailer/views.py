@@ -18,33 +18,32 @@ def search_api(request):
     Perform a search using the LibgenSearch class and return the results.
     """
     if request.method == "GET":
-        s = LibgenSearch()
-        title = request.GET.get("title")
-        author = request.GET.get("author")
-        extension = request.GET.get("extension")
-        publisher = request.GET.get("publisher")
-        year = request.GET.get("year")
-        language = request.GET.get("language")
+        search = request.GET.get("search")
+        if len(search) == 0:
+            return HttpResponseServerError("Search query cannot be empty.")
+        
+        # Construct the URL for the external API
+        external_api_url = "https://api.ylibrary.org/api/search/?"
+        params = {
+            "keyword": search,
+            "page": 25,
+            "sensitive": "False",
+        }
 
-        try: 
-            if len(title) >= 3 and author == None and extension == None and publisher == None and year == None and language == None: # title search
-                results = s.search_title(title)
-            elif len(title) > 3 and (author != None or extension != None or publisher != None or year != None or language != None): # filtered title search 
-                title_filters = {"Author": author, "Extension": extension, "Publisher": publisher, "Year": year, "Language": language}
-                results = s.search_title_filtered(title, title_filters, exact_match=False)
-            elif len(title) < 3 and author != None and extension == None and publisher == None and year == None and language == None: # author search
-                results = s.search_author(author)
-            elif len(title) < 3 and author != None and (extension != None or publisher != None or year != None or language != None): # filtered author search
-                author_filters = {"Extension": extension, "Publisher": publisher, "Year": year, "Language": language}
-                results = s.search_author_filtered(author, author_filters, exact_match=False)
-        except Exception as e:
-            if str(e) != "Query is too short":
-                print("Caught a different Exception:", e)
-            results = []
+        response = requests.post(external_api_url, json=params)
+        response_data = response.json()  # Parse the JSON response
 
-        serializer = BookSerializer(results, many=True)
-        return Response(serializer.data)
-
+        # Extract the "data" key from the response dictionary
+        data_from_response = response_data.get("data", [])
+        print(f"Data from response: {data_from_response}")
+        results_serializer = BookSerializer(data=data_from_response, many=True)
+        
+        if results_serializer.is_valid():
+            serialized_data = results_serializer.data
+            return Response(serialized_data, status=status.HTTP_200_OK)
+        else:
+            print(results_serializer.errors)
+            return Response(results_serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 @api_view(["POST"])
 def send_to_kindle_api(request):
