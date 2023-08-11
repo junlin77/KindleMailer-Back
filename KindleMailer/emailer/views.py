@@ -26,7 +26,7 @@ def search_api(request):
         external_api_url = "https://api.ylibrary.org/api/search/?"
         params = {
             "keyword": search,
-            "page": 25,
+            "page": 1,
             "sensitive": "False",
         }
 
