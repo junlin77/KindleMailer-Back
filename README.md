@@ -6,3 +6,6 @@ The backend implemented with Django Rest Framework (DRF) for KindleMailer - a we
 
 This project is an extension/enhancement of the other repository - LibgenEmailer (https://github.com/junlin77/LibgenEmailer). The idea to create this web app came from the pain of having to download books and then send them to my Kindle in an additional step. So I built this site with the purpose of replacing that action all within one click.
 
+# Demo
+
+Visit [here](https://github.com/junlin77/KindleMailer-Front) to see application demo. 
