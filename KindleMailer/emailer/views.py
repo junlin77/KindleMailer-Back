@@ -46,6 +46,13 @@ def search_api(request):
             return Response(results_serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 @api_view(["POST"])
+def details_api(request):
+    """
+    Get details of selected books.
+    """
+    
+
+@api_view(["POST"])
 def send_to_kindle_api(request):
     """
     Send the selected book to the Kindle email address.
