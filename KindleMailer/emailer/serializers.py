@@ -2,7 +2,7 @@ from rest_framework import serializers
 
 class BookSerializer(serializers.Serializer):
     title = serializers.CharField()
-    author = serializers.CharField()
+    author = serializers.CharField(allow_blank=True)
     publisher = serializers.CharField(required=False, allow_blank=True)
     isbn = serializers.CharField(allow_null=True, required=False)
     extension = serializers.CharField()

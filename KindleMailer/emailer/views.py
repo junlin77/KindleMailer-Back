@@ -36,11 +36,12 @@ def search_api(request):
             response_data = response.json()  # Try to parse the JSON response
         except requests.exceptions.JSONDecodeError:
             # If JSON parsing fails, handle the error appropriately
+            print("Error parsing API response as JSON.")
             return Response("Error parsing API response as JSON.", status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
         # Extract the "data" key from the response dictionary
         data_from_response = response_data.get("data", [])
-        # print(f"Data from response: {data_from_response}")
+        print(f"Data from response: {data_from_response}")
         results_serializer = BookSerializer(data=data_from_response, many=True)
         
         if results_serializer.is_valid():
