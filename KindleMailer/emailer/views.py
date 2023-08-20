@@ -85,9 +85,15 @@ def send_to_kindle_api(request):
     """
     if request.method == "POST":
         data = json.loads(request.body)
-        item_to_download = data.get("book_to_download")
+        ipfs_cid = data.get("ipfs_cid")
         kindle_email = data.get("kindle_email").strip()
+        title = data.get("title")
+        extension = data.get("extension")
+
+        print(f"IPFS CID: {ipfs_cid}")
         print(f"Kindle email: {kindle_email}")
+        print(f"Title: {title}")
+        print(f"Extension: {extension}")
 
         # Server-side email validation
         if len(kindle_email) == 0:
@@ -97,28 +103,30 @@ def send_to_kindle_api(request):
             print("Invalid email address.")
             return JsonResponse({"error": "Invalid email address."}, status=400)
 
-        # resolve_download_links()
+        # Fetch and save IPFS file
         try:
-            s = LibgenSearch() 
-            url = s.resolve_download_links(item_to_download)
+            ipfs_gateway_url = f"https://ipfs.io/ipfs/{ipfs_cid}"
+            response = requests.get(ipfs_gateway_url)
+            if response.status_code == 200:
+                # Set the filename and destination directory
+                filename = os.path.basename(title + "." + extension)  # Adjust extension if needed
+                destination_directory = settings.MEDIA_ROOT
+                file_path = os.path.join(destination_directory, filename)
+
+                # Save the IPFS file in MEDIA_ROOT
+                try:
+                    with open(file_path, 'wb') as file:
+                        file.write(response.content)
+                    print("IPFS file saved successfully.")
+                except Exception as e:
+                    print(f"Failed to save IPFS file: {str(e)}")
+                    return HttpResponseServerError("Failed to save IPFS file.")
+            else:
+                print("Failed to fetch IPFS file from gateway.")
+                return HttpResponseServerError("Failed to fetch IPFS file from gateway.")
         except Exception as e:
-            print(f"Failed to resolve download links: {str(e)}")
-            return HttpResponseServerError("Failed to resolve download links.")
-
-        # Iterate through the download links
-        response = iterate_download_links(url)
-
-        # Set the filename and destination directory
-        filename = os.path.basename(item_to_download['Title'] + '.' + item_to_download['Extension'])
-        destination_directory = settings.MEDIA_ROOT
-        file_path = os.path.join(destination_directory, filename)
-        print(f"File path: {file_path}")
-
-        # Save the file in MEDIA_ROOT
-        if save_file_in_media_root(response, file_path):
-            print("File saved successfully in MEDIA_ROOT.")
-        else:
-            return HttpResponseServerError("Failed to save the file.")
+            print(f"Failed to process IPFS file: {str(e)}")
+            return HttpResponseServerError("Failed to process IPFS file.")
 
         # Send the file as an email attachment
         if send_email_with_attachment(kindle_email, file_path):

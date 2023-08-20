@@ -30,19 +30,6 @@ def iterate_download_links(url):
     # Process the successful response as needed
     return response
 
-def save_file_in_media_root(response, file_path):
-    """
-    Save the file in MEDIA_ROOT.
-    """
-    with open(file_path, 'wb') as file:
-        file.write(response.read())
-
-    # Check if the file was saved successfully
-    if os.path.exists(file_path):
-        return True
-    else:
-        return False
-
 def send_email_with_attachment(email_address, file_path):
     """
     Sends an email with the attached file to the given email address.
