@@ -6,7 +6,7 @@ from .helpers import *
 from rest_framework.response import Response
 from rest_framework.decorators import api_view
 from rest_framework.views import APIView
-from .serializers import BookSerializer
+from .serializers import BookSerializer, DetailsSerializer
 import json
 from rest_framework import status
 import requests
@@ -50,7 +50,27 @@ def details_api(request):
     """
     Get details of selected books.
     """
-    
+    if request.method == "POST":
+        id = request.data.get("id")
+        source = request.data.get("source")
+
+        if id is None or source is None:
+            return HttpResponseServerError("ID and source must be provided in the request body.", status=status.HTTP_400_BAD_REQUEST)
+
+        api_url = "https://api.ylibrary.org/api/detail/?"
+        params = {
+            "id": id,
+            "source": source,  
+        }
+        response = requests.post(api_url, json=params)
+        response_data = response.json()
+
+        serializer = DetailsSerializer(data=response_data)
+        if serializer.is_valid():
+            serialized_data = serializer.data
+            return Response(serialized_data, status=status.HTTP_200_OK)
+        else:
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 @api_view(["POST"])
 def send_to_kindle_api(request):
