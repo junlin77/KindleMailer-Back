@@ -23,19 +23,24 @@ def search_api(request):
             return HttpResponseServerError("Search query cannot be empty.")
         
         # Construct the URL for the external API
-        external_api_url = "https://api.ylibrary.org/api/search/?"
+        api_url = "https://api.ylibrary.org/api/search/?"
         params = {
             "keyword": search,
             "page": 1,
             "sensitive": "False",
         }
 
-        response = requests.post(external_api_url, json=params)
-        response_data = response.json()  # Parse the JSON response
+        response = requests.post(api_url, json=params)
+
+        try:
+            response_data = response.json()  # Try to parse the JSON response
+        except requests.exceptions.JSONDecodeError:
+            # If JSON parsing fails, handle the error appropriately
+            return Response("Error parsing API response as JSON.", status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
         # Extract the "data" key from the response dictionary
         data_from_response = response_data.get("data", [])
-        print(f"Data from response: {data_from_response}")
+        # print(f"Data from response: {data_from_response}")
         results_serializer = BookSerializer(data=data_from_response, many=True)
         
         if results_serializer.is_valid():
