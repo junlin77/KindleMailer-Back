@@ -19,6 +19,8 @@ def search_api(request):
     """
     if request.method == "GET":
         search = request.GET.get("search")
+        page = request.GET.get("page")
+        print(page)
         if len(search) == 0:
             return HttpResponseServerError("Search query cannot be empty.")
         
@@ -26,7 +28,7 @@ def search_api(request):
         api_url = "https://api.ylibrary.org/api/search/?"
         params = {
             "keyword": search,
-            "page": 1,
+            "page": page,
             "sensitive": "False",
         }
 
