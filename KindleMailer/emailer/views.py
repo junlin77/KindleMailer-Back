@@ -1,6 +1,6 @@
 from django.http import JsonResponse, HttpResponseServerError
 from django.conf import settings
-from libgen_api import LibgenSearch
+from requests.exceptions import Timeout, RequestException
 import os
 from .helpers import *
 from rest_framework.response import Response
@@ -105,30 +105,42 @@ def send_to_kindle_api(request):
             print("Invalid email address.")
             return JsonResponse({"error": "Invalid email address."}, status=400)
 
-        # Fetch and save IPFS file
-        try:
-            ipfs_gateway_url = f"https://ipfs.io/ipfs/{ipfs_cid}"
-            response = requests.get(ipfs_gateway_url)
-            if response.status_code == 200:
-                # Set the filename and destination directory
-                filename = os.path.basename(title + "." + extension)  # Adjust extension if needed
-                destination_directory = settings.MEDIA_ROOT
-                file_path = os.path.join(destination_directory, filename)
+        ipfs_gateways =["https://ipfs.io/ipfs/", 
+                        "https://dweb.link/ipfs/",
+                        "https://gateway.ipfs.io/ipfs/",
+                        "https://ipfs.eternum.io/ipfs/",
+                        "https://cloudflare-ipfs.com/ipfs/",
+                        "https://astyanax.io/ipfs/",
+                        "https://cf-ipfs.com/ipfs/",
+                        "https://gateway.pinata.cloud/ipfs/"]
+        
+        for gateway in ipfs_gateways:
+            ipfs_gateway_url = f"{gateway}{ipfs_cid}"
+            try:
+                response = requests.get(ipfs_gateway_url, timeout=30)
+                if response.status_code == 200:
+                    # Set the filename and destination directory
+                    filename = os.path.basename(title + "." + extension)  # Adjust extension if needed
+                    destination_directory = settings.MEDIA_ROOT
+                    file_path = os.path.join(destination_directory, filename)
 
-                # Save the IPFS file in MEDIA_ROOT
-                try:
-                    with open(file_path, 'wb') as file:
-                        file.write(response.content)
-                    print("IPFS file saved successfully.")
-                except Exception as e:
-                    print(f"Failed to save IPFS file: {str(e)}")
-                    return HttpResponseServerError("Failed to save IPFS file.")
-            else:
-                print("Failed to fetch IPFS file from gateway.")
-                return HttpResponseServerError("Failed to fetch IPFS file from gateway.")
-        except Exception as e:
-            print(f"Failed to process IPFS file: {str(e)}")
-            return HttpResponseServerError("Failed to process IPFS file.")
+                    # Save the IPFS file in MEDIA_ROOT
+                    try:
+                        with open(file_path, 'wb') as file:
+                            file.write(response.content)
+                        print("IPFS file saved successfully.")
+                        break
+                    except Exception as e:
+                        print(f"Failed to save IPFS file: {str(e)}")
+                else:
+                    print(f"Failed to fetch IPFS file from gateway: {ipfs_gateway_url}")
+
+            except Timeout:
+                print(f"Request to {ipfs_gateway_url} timed out.")
+            except RequestException as e:
+                print(f"Request error for {ipfs_gateway_url}: {str(e)}")
+            except Exception as e:
+                print(f"Failed to process IPFS file: {str(e)}")
 
         # Send the file as an email attachment
         if send_email_with_attachment(kindle_email, file_path):
